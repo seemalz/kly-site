@@ -983,10 +983,15 @@ footer {
   const gate = document.getElementById('password-gate');
   const input = document.getElementById('gate-input');
   const pass = 'letmein';
+  if (sessionStorage.getItem('kly_unlocked')) {
+    gate.remove();
+    return;
+  }
   document.body.style.overflow = 'hidden';
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       if (input.value === pass) {
+        sessionStorage.setItem('kly_unlocked', '1');
         gate.classList.add('unlocked');
         document.body.style.overflow = '';
         setTimeout(() => gate.remove(), 600);
