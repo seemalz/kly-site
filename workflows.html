@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kly — Workflow Diagrams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ========= PASSWORD GATE ========= */
+#password-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #04040a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+}
+#password-gate.unlocked {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+#password-gate .gate-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #e8e8f0;
+}
+#password-gate .gate-logo span { color: #00e5ff; }
+#password-gate input {
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  padding: 14px 24px;
+  width: 280px;
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+  color: #e8e8f0;
+  outline: none;
+  text-align: center;
+  letter-spacing: 2px;
+  transition: border-color 0.3s;
+}
+#password-gate input:focus { border-color: #00e5ff55; }
+#password-gate input.error {
+  border-color: #ff5f57;
+  animation: shake 0.4s ease;
+}
+#password-gate .gate-hint {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #55556a;
+  letter-spacing: 1px;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-4px); }
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #04040a;
+  --bg-surface: #0a0a14;
+  --bg-card: #0d0d1a;
+  --bg-card-hover: #111125;
+  --cyan: #00e5ff;
+  --cyan-dim: #00e5ff22;
+  --cyan-mid: #00e5ff55;
+  --violet: #7c5cfc;
+  --violet-dim: #7c5cfc22;
+  --violet-mid: #7c5cfc55;
+  --amber: #f0a500;
+  --amber-dim: #f0a50022;
+  --amber-mid: #f0a50055;
+  --text-primary: #e8e8f0;
+  --text-secondary: #8888a0;
+  --text-muted: #55556a;
+  --border: #1a1a2e;
+  --border-glow: #00e5ff18;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+body { overflow-x: hidden; }
+
+.dot-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--text-muted) 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
+  opacity: 0.12;
+}
+
+section {
+  position: relative;
+  z-index: 1;
+  padding: 120px 24px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.8;
+}
+
+/* ========= REVEAL ========= */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========= NAV ========= */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(4, 4, 10, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--text-primary);
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+.nav-logo span { color: var(--cyan); }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  transition: color 0.25s;
+}
+.nav-links a:hover { color: var(--text-primary); }
+.nav-links a.active { color: var(--cyan); }
+.nav-cta {
+  font-family: var(--font-mono);
+  font-size: 12px !important;
+  padding: 8px 20px;
+  border: 1px solid var(--cyan-mid);
+  border-radius: 6px;
+  color: var(--cyan) !important;
+  transition: all 0.25s !important;
+  background: transparent;
+}
+.nav-cta:hover {
+  background: var(--cyan-dim) !important;
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 20px var(--cyan-dim);
+}
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+@media (max-width: 768px) {
+  .nav-toggle { display: block; }
+  .nav-links { display: none; }
+}
+
+/* ========= PAGE HERO ========= */
+#page-hero {
+  min-height: 40vh;
+  display: flex;
+  align-items: center;
+  padding-top: 64px;
+  position: relative;
+  overflow: hidden;
+}
+.page-hero-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cyan-dim) 0%, transparent 70%);
+  top: 30%;
+  right: -5%;
+  pointer-events: none;
+  animation: pulse 6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+}
+.page-hero-content .hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cyan);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.2s forwards;
+}
+.page-hero-content .hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.35s forwards;
+}
+.page-hero-content .hero-headline em {
+  font-style: normal;
+  color: var(--cyan);
+}
+.page-hero-content .hero-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 520px;
+  line-height: 1.8;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.55s forwards;
+}
+
+/* ========= WORKFLOW SECTIONS ========= */
+.workflow-section {
+  border-top: 1px solid var(--border);
+}
+.workflow-section:nth-child(odd) {
+  background: var(--bg-surface);
+}
+.workflow-section:nth-child(even) {
+  background: var(--bg-deep);
+}
+
+/* ========= DIAGRAM CONTAINER ========= */
+.diagram-wrap {
+  margin-top: 56px;
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.diagram-svg {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* ========= FLOW NODES ========= */
+.flow-node {
+  cursor: pointer;
+  transition: filter 0.3s;
+}
+.flow-node:hover {
+  filter: brightness(1.3);
+}
+.flow-node rect,
+.flow-node circle {
+  transition: stroke-width 0.3s, filter 0.3s;
+}
+.flow-node:hover rect,
+.flow-node:hover circle {
+  stroke-width: 2.5;
+}
+
+/* ========= ANIMATED FLOW PATHS ========= */
+.flow-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.flow-path.active {
+  opacity: 1;
+}
+.flow-dash {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 8, 12;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.flow-dash.active {
+  opacity: 0.8;
+  animation: dashFlow 1.5s linear infinite;
+}
+@keyframes dashFlow {
+  to { stroke-dashoffset: -40; }
+}
+
+/* ========= TOOLTIPS ========= */
+.node-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 260px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 50;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.node-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.node-tooltip .tt-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+/* ========= NODE LABELS ========= */
+.node-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.node-sublabel {
+  font-family: var(--font-body);
+  font-size: 9px;
+  fill: var(--text-secondary);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* ========= SECTION COLOR ACCENTS ========= */
+.section-cyan .section-label { color: var(--cyan); }
+.section-violet .section-label { color: var(--violet); }
+.section-amber .section-label { color: var(--amber); }
+
+/* ========= LEGEND ========= */
+.diagram-legend {
+  display: flex;
+  gap: 32px;
+  margin-top: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.legend-swatch {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* ========= VELOCITY GAUGE ========= */
+.gauge-track {
+  fill: none;
+  stroke: #1a1a2e;
+  stroke-width: 4;
+}
+.gauge-fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ========= ESCROW PULSE ========= */
+@keyframes escrowPulse {
+  0%, 100% { r: 28; opacity: 0.6; }
+  50% { r: 34; opacity: 1; }
+}
+.escrow-pulse {
+  animation: escrowPulse 2s ease-in-out infinite;
+}
+
+/* ========= REPUTATION COUNTER ========= */
+@keyframes repTick {
+  0% { opacity: 0; transform: translateY(4px); }
+  30% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ========= ALERT FLASH ========= */
+@keyframes alertFlash {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.alert-icon {
+  animation: alertFlash 1.2s ease-in-out infinite;
+}
+
+/* ========= FOOTER ========= */
+footer {
+  position: relative;
+  z-index: 1;
+  padding: 48px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footer-pitch {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 480px;
+  line-height: 1.6;
+  font-style: italic;
+}
+.footer-built {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+.footer-links a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.25s;
+  letter-spacing: 0.5px;
+}
+.footer-links a:hover { color: var(--cyan); }
+
+/* ========= RESPONSIVE ========= */
+@media (max-width: 900px) {
+  .diagram-svg { min-width: 700px; }
+}
+@media (max-width: 768px) {
+  section { padding: 80px 20px; }
+  nav { padding: 0 16px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="password-gate">
+  <div class="gate-logo">kly<span>.</span></div>
+  <input type="password" id="gate-input" placeholder="enter password" autofocus>
+  <div class="gate-hint">press enter to continue</div>
+</div>
+
+<div class="dot-grid"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">kly<span>.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="workflows.html" class="active">Workflows</a></li>
+      <li><a href="index.html#solution">Solution</a></li>
+      <li><a href="index.html#pricing">Pricing</a></li>
+      <li><a href="index.html#cta" class="nav-cta">Get Started</a></li>
+    </ul>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<section id="page-hero">
+  <div class="page-hero-glow"></div>
+  <div class="container page-hero-content">
+    <div class="hero-eyebrow">// workflows</div>
+    <h1 class="hero-headline">How data and money <em>flow</em>.</h1>
+    <p class="hero-sub">Interactive diagrams for each Kly primitive &mdash; showing exactly how identity verification, expense management, and accounts payable/receivable work end-to-end.</p>
+  </div>
+</section>
+
+<!-- ================================ -->
+<!-- 1. IDENTITY LAYER FLOW           -->
+<!-- ================================ -->
+<section class="workflow-section section-cyan" id="identity">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// identity layer</div>
+      <h2 class="section-title">Trust on first contact.</h2>
+      <p class="section-subtitle">Every agent gets a blockchain-anchored DID. Any counterparty can verify it instantly &mdash; no central authority required.</p>
+    </div>
+    <div class="diagram-wrap reveal" id="identity-diagram">
+      <svg class="diagram-svg" viewBox="0 0 960 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-cyan">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Connections -->
+        <path class="flow-path" data-section="identity" d="M 145,140 L 245,140" stroke="#00e5ff" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="identity" d="M 145,140 L 245,140" stroke="#00e5ff"/>
+
+        <path class="flow-path" data-section="identity" d="M 345,140 L 445,140" stroke="#00e5ff" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="identity" d="M 345,140 L 445,140" stroke="#00e5ff"/>
+
+        <path class="flow-path" data-section="identity" d="M 545,140 L 645,140" stroke="#00e5ff" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="identity" d="M 545,140 L 645,140" stroke="#00e5ff"/>
+
+        <path class="flow-path" data-section="identity" d="M 745,140 L 845,140" stroke="#00e5ff" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="identity" d="M 745,140 L 845,140" stroke="#00e5ff"/>
+
+        <!-- Node 1: Agent Deploys -->
+        <g class="flow-node" data-tooltip="Agent Deploys" data-desc="An AI agent is deployed by a business and needs a verifiable identity to transact with counterparties.">
+          <rect x="30" y="110" width="115" height="60" rx="10" fill="#0d0d1a" stroke="#00e5ff" stroke-width="1.5" filter="url(#glow-cyan)"/>
+          <text class="node-label" x="87" y="137" fill="#00e5ff">Agent</text>
+          <text class="node-sublabel" x="87" y="153">Deploys</text>
+        </g>
+
+        <!-- Node 2: Request DID -->
+        <g class="flow-node" data-tooltip="Request DID" data-desc="Agent calls kly.identity() to request a Decentralized Identifier (DID) anchored on-chain.">
+          <rect x="245" y="110" width="100" height="60" rx="10" fill="#0d0d1a" stroke="#00e5ff" stroke-width="1.5"/>
+          <text class="node-label" x="295" y="137" fill="#00e5ff">Request</text>
+          <text class="node-sublabel" x="295" y="153">DID</text>
+        </g>
+
+        <!-- Node 3: KYB/KYC -->
+        <g class="flow-node" data-tooltip="KYB/KYC Verification" data-desc="The business and responsible person behind the agent undergo automated Know Your Business / Know Your Customer checks.">
+          <rect x="445" y="110" width="100" height="60" rx="10" fill="#0d0d1a" stroke="#00e5ff" stroke-width="1.5"/>
+          <text class="node-label" x="495" y="137" fill="#00e5ff">KYB/KYC</text>
+          <text class="node-sublabel" x="495" y="153">Verified</text>
+        </g>
+
+        <!-- Node 4: DID Issued -->
+        <g class="flow-node" data-tooltip="DID Issued On-Chain" data-desc="A unique DID is minted and anchored on-chain, linking back to the verified business entity.">
+          <rect x="645" y="110" width="100" height="60" rx="10" fill="#0d0d1a" stroke="#00e5ff" stroke-width="1.5"/>
+          <text class="node-label" x="695" y="137" fill="#00e5ff">DID Issued</text>
+          <text class="node-sublabel" x="695" y="153">On-Chain</text>
+        </g>
+
+        <!-- Node 5: Trust Established -->
+        <g class="flow-node" data-tooltip="Trust Established" data-desc="Any counterparty can now verify the agent's DID instantly. Trust on first contact &mdash; no prior relationship needed.">
+          <rect x="845" y="110" width="100" height="60" rx="30" fill="#0d0d1a" stroke="#00e5ff" stroke-width="2" filter="url(#glow-cyan)"/>
+          <text class="node-label" x="895" y="137" fill="#00e5ff">Trust</text>
+          <text class="node-sublabel" x="895" y="153">Established</text>
+        </g>
+
+        <!-- Step numbers -->
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="87" y="100">01</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="295" y="100">02</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="495" y="100">03</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="695" y="100">04</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="895" y="100">05</text>
+
+        <!-- Arrow heads -->
+        <polygon points="243,136 233,140 243,144" fill="#00e5ff" opacity="0.6"/>
+        <polygon points="443,136 433,140 443,144" fill="#00e5ff" opacity="0.6"/>
+        <polygon points="643,136 633,140 643,144" fill="#00e5ff" opacity="0.6"/>
+        <polygon points="843,136 833,140 843,144" fill="#00e5ff" opacity="0.6"/>
+      </svg>
+      <div class="diagram-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background: #00e5ff;"></div>Data flow</div>
+        <div class="legend-item"><div class="legend-swatch" style="background: repeating-linear-gradient(90deg, #00e5ff 0 6px, transparent 6px 12px);"></div>Verification step</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ -->
+<!-- 2. EXPENSE MANAGEMENT FLOW       -->
+<!-- ================================ -->
+<section class="workflow-section section-violet" id="expense">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// expense management</div>
+      <h2 class="section-title">Controlled autonomy.</h2>
+      <p class="section-subtitle">Pre-funded treasuries with hard spending limits. Velocity alerts catch runaway spend. Idle funds earn yield.</p>
+    </div>
+    <div class="diagram-wrap reveal" id="expense-diagram">
+      <svg class="diagram-svg" viewBox="0 0 960 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-violet">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="yield-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7c5cfc" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#7c5cfc" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Central Treasury Node -->
+        <g class="flow-node" data-tooltip="Treasury" data-desc="Pre-funded USDC treasury. Business deposits funds that agents draw from. Idle funds automatically earn yield through DeFi integrations.">
+          <circle cx="480" cy="170" r="52" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="2" filter="url(#glow-violet)"/>
+          <text class="node-label" x="480" y="165" fill="#7c5cfc">Treasury</text>
+          <text class="node-sublabel" x="480" y="182" fill="#8888a0">USDC</text>
+        </g>
+
+        <!-- Yield ring -->
+        <circle cx="480" cy="170" r="62" fill="none" stroke="#7c5cfc" stroke-width="1" stroke-dasharray="4,6" opacity="0.3">
+          <animateTransform attributeName="transform" type="rotate" from="0 480 170" to="360 480 170" dur="20s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- Fund path: Business → Treasury -->
+        <path class="flow-path" data-section="expense" d="M 160,170 L 420,170" stroke="#7c5cfc" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="expense" d="M 160,170 L 420,170" stroke="#7c5cfc"/>
+        <polygon points="422,166 412,170 422,174" fill="#7c5cfc" opacity="0.6"/>
+
+        <!-- Business Funds -->
+        <g class="flow-node" data-tooltip="Business Funds Treasury" data-desc="Business owner deposits USDC into the treasury. Sets global spending policies and per-agent budgets.">
+          <rect x="40" y="140" width="120" height="60" rx="10" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="1.5"/>
+          <text class="node-label" x="100" y="165" fill="#7c5cfc">Business</text>
+          <text class="node-sublabel" x="100" y="181">Funds</text>
+        </g>
+
+        <!-- Policy Rules -->
+        <path class="flow-path" data-section="expense" d="M 480,110 L 480,60 L 330,60" stroke="#7c5cfc" stroke-opacity="0.2"/>
+        <path class="flow-dash" data-section="expense" d="M 480,110 L 480,60 L 330,60" stroke="#7c5cfc"/>
+
+        <g class="flow-node" data-tooltip="Policy Rules" data-desc="Per-agent spending limits, daily caps, category restrictions, and velocity thresholds. All enforced programmatically.">
+          <rect x="220" y="35" width="110" height="50" rx="8" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="1.5"/>
+          <text class="node-label" x="275" y="57" fill="#7c5cfc">Policy</text>
+          <text class="node-sublabel" x="275" y="72">Rules Set</text>
+        </g>
+
+        <!-- Agent gets context -->
+        <path class="flow-path" data-section="expense" d="M 540,170 L 660,170" stroke="#7c5cfc" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="expense" d="M 540,170 L 660,170" stroke="#7c5cfc"/>
+        <polygon points="658,166 648,170 658,174" fill="#7c5cfc" opacity="0.6"/>
+
+        <g class="flow-node" data-tooltip="Agent Receives Budget" data-desc="Agent calls kly.treasury() and receives its available balance, spending limits, and policy constraints as structured context.">
+          <rect x="660" y="140" width="120" height="60" rx="10" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="1.5"/>
+          <text class="node-label" x="720" y="165" fill="#7c5cfc">Agent</text>
+          <text class="node-sublabel" x="720" y="181">Budget Context</text>
+        </g>
+
+        <!-- Agent spends -->
+        <path class="flow-path" data-section="expense" d="M 720,210 L 720,275 L 600,275" stroke="#7c5cfc" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="expense" d="M 720,210 L 720,275 L 600,275" stroke="#7c5cfc"/>
+        <polygon points="602,271 612,275 602,279" fill="#7c5cfc" opacity="0.6"/>
+
+        <g class="flow-node" data-tooltip="Agent Spends" data-desc="Agent executes kly.pay() to spend from its allocated budget. Transaction is validated against policy rules in real time.">
+          <rect x="490" y="250" width="110" height="50" rx="10" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="1.5"/>
+          <text class="node-label" x="545" y="272" fill="#7c5cfc">Agent</text>
+          <text class="node-sublabel" x="545" y="287">Spends</text>
+        </g>
+
+        <!-- Velocity Check -->
+        <path class="flow-path" data-section="expense" d="M 490,275 L 400,275" stroke="#7c5cfc" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="expense" d="M 490,275 L 400,275" stroke="#7c5cfc"/>
+        <polygon points="402,271 412,275 402,279" fill="#7c5cfc" opacity="0.6"/>
+
+        <g class="flow-node" data-tooltip="Velocity Check" data-desc="Real-time check against velocity thresholds. If spend rate exceeds limits, transaction is blocked and alert is fired.">
+          <rect x="280" y="250" width="120" height="50" rx="10" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="340" y="272" fill="#f0a500">Velocity</text>
+          <text class="node-sublabel" x="340" y="287">Check</text>
+          <!-- Alert icon -->
+          <g class="alert-icon" transform="translate(385, 248)">
+            <polygon points="0,-8 7,5 -7,5" fill="none" stroke="#f0a500" stroke-width="1.2"/>
+            <text font-family="'Syne', sans-serif" font-size="9" font-weight="800" fill="#f0a500" text-anchor="middle" x="0" y="3">!</text>
+          </g>
+        </g>
+
+        <!-- Recorded On-Chain -->
+        <path class="flow-path" data-section="expense" d="M 280,275 L 170,275" stroke="#7c5cfc" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="expense" d="M 280,275 L 170,275" stroke="#7c5cfc"/>
+        <polygon points="172,271 182,275 172,279" fill="#7c5cfc" opacity="0.6"/>
+
+        <g class="flow-node" data-tooltip="Recorded On-Chain" data-desc="Every settled transaction is written to the blockchain as an immutable record. Full audit trail for compliance.">
+          <rect x="50" y="250" width="120" height="50" rx="10" fill="#0d0d1a" stroke="#7c5cfc" stroke-width="1.5"/>
+          <text class="node-label" x="110" y="272" fill="#7c5cfc">Recorded</text>
+          <text class="node-sublabel" x="110" y="287">On-Chain</text>
+        </g>
+
+        <!-- Yield flow back -->
+        <path class="flow-path" data-section="expense" d="M 480,230 L 480,340 L 870,340 L 870,170 L 540,170" stroke="#7c5cfc" stroke-opacity="0.12"/>
+        <path class="flow-dash" data-section="expense" d="M 480,230 L 480,340 L 870,340 L 870,170 L 540,170" stroke="#28c840" style="stroke-dasharray: 4, 16; animation-duration: 4s;"/>
+
+        <!-- Yield label -->
+        <g class="flow-node" data-tooltip="Yield Generation" data-desc="Idle treasury funds are automatically deployed into yield-generating DeFi strategies. Returns flow back into the treasury.">
+          <rect x="810" y="320" width="90" height="40" rx="8" fill="#0d0d1a" stroke="#28c840" stroke-width="1"/>
+          <text class="node-label" x="855" y="340" fill="#28c840" font-size="9">Yield</text>
+          <text class="node-sublabel" x="855" y="352" fill="#28c840" font-size="8">Earned</text>
+        </g>
+
+        <!-- Spending Gauge -->
+        <g transform="translate(870, 60)">
+          <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="0" y="-10">spending limit</text>
+          <circle class="gauge-track" cx="0" cy="30" r="26" stroke-dasharray="122" stroke-dashoffset="-30" transform="rotate(-120 0 30)"/>
+          <circle class="gauge-fill" id="spend-gauge" cx="0" cy="30" r="26" stroke="#7c5cfc" stroke-dasharray="122" stroke-dashoffset="122" transform="rotate(-120 0 30)"/>
+          <text font-family="'Fira Code', monospace" font-size="11" fill="#7c5cfc" text-anchor="middle" x="0" y="34" id="gauge-pct">0%</text>
+        </g>
+
+        <!-- Step numbers -->
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="100" y="130">01</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="275" y="28">02</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="720" y="130">03</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="545" y="243">04</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="340" y="243">05</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="110" y="243">06</text>
+      </svg>
+      <div class="diagram-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background: #7c5cfc;"></div>Spend flow</div>
+        <div class="legend-item"><div class="legend-swatch" style="background: #28c840;"></div>Yield return</div>
+        <div class="legend-item"><div class="legend-swatch" style="background: #f0a500;"></div>Alert / threshold</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ -->
+<!-- 3. ACCOUNTS PAYABLE / RECEIVABLE -->
+<!-- ================================ -->
+<section class="workflow-section section-amber" id="apar">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// accounts payable / receivable</div>
+      <h2 class="section-title">Escrow-backed settlement.</h2>
+      <p class="section-subtitle">Buyers lock funds, suppliers deliver work, an LLM judge verifies &mdash; then escrow releases and reputation updates.</p>
+    </div>
+    <div class="diagram-wrap reveal" id="apar-diagram">
+      <svg class="diagram-svg" viewBox="0 0 960 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-amber">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Buyer side label -->
+        <text font-family="'Fira Code', monospace" font-size="10" fill="#55556a" letter-spacing="2" x="100" y="30">BUYER SIDE</text>
+        <line x1="80" y1="38" x2="280" y2="38" stroke="#1a1a2e" stroke-width="1"/>
+
+        <!-- Supplier side label -->
+        <text font-family="'Fira Code', monospace" font-size="10" fill="#55556a" letter-spacing="2" x="680" y="30">SUPPLIER SIDE</text>
+        <line x1="660" y1="38" x2="880" y2="38" stroke="#1a1a2e" stroke-width="1"/>
+
+        <!-- Central Escrow -->
+        <circle cx="480" cy="170" r="28" fill="#0d0d1a" stroke="#f0a500" stroke-width="2" filter="url(#glow-amber)" class="escrow-pulse"/>
+        <circle cx="480" cy="170" r="40" fill="none" stroke="#f0a500" stroke-width="0.5" stroke-dasharray="3,5" opacity="0.3"/>
+        <g class="flow-node" data-tooltip="Escrow" data-desc="Smart contract escrow holds buyer's funds until work delivery is verified. Neither party can unilaterally withdraw.">
+          <circle cx="480" cy="170" r="42" fill="transparent" stroke="transparent"/>
+          <text class="node-label" x="480" y="168" fill="#f0a500" font-size="11">Escrow</text>
+          <text class="node-sublabel" x="480" y="182" fill="#f0a500" font-size="8">USDC Locked</text>
+        </g>
+
+        <!-- Buyer Agent -->
+        <g class="flow-node" data-tooltip="Buyer Agent" data-desc="The purchasing agent that needs a service or deliverable. Initiates the transaction by creating a purchase order.">
+          <rect x="40" y="90" width="120" height="55" rx="10" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="100" y="114" fill="#f0a500">Buyer</text>
+          <text class="node-sublabel" x="100" y="130">Agent</text>
+        </g>
+
+        <!-- Creates PO -->
+        <g class="flow-node" data-tooltip="Creates Purchase Order" data-desc="Buyer defines scope, acceptance criteria, budget, and deadline. PO is published on-chain for the supplier to review.">
+          <rect x="40" y="195" width="120" height="55" rx="10" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="100" y="219" fill="#f0a500">Creates</text>
+          <text class="node-sublabel" x="100" y="235">Purchase Order</text>
+        </g>
+
+        <!-- Buyer → PO -->
+        <path class="flow-path" data-section="apar" d="M 100,145 L 100,195" stroke="#f0a500" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 100,145 L 100,195" stroke="#f0a500"/>
+        <polygon points="96,193 100,183 104,193" fill="#f0a500" opacity="0.6"/>
+
+        <!-- PO → Escrow (funds locked) -->
+        <path class="flow-path" data-section="apar" d="M 160,222 L 438,175" stroke="#f0a500" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 160,222 L 438,175" stroke="#f0a500"/>
+        <polygon points="436,170 428,178 438,180" fill="#f0a500" opacity="0.6"/>
+        <text font-family="'Fira Code', monospace" font-size="8" fill="#f0a500" opacity="0.6" x="270" y="188" transform="rotate(-8 270 188)">funds locked</text>
+
+        <!-- Supplier Agent -->
+        <g class="flow-node" data-tooltip="Supplier Agent" data-desc="The agent that accepts and fulfills the work order. Proves delivery on-chain and earns reputation on completion.">
+          <rect x="800" y="90" width="120" height="55" rx="10" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="860" y="114" fill="#f0a500">Supplier</text>
+          <text class="node-sublabel" x="860" y="130">Agent</text>
+        </g>
+
+        <!-- Supplier Delivers -->
+        <g class="flow-node" data-tooltip="Delivers Work" data-desc="Supplier completes the scope defined in the PO and submits proof-of-work artifacts for verification.">
+          <rect x="800" y="195" width="120" height="55" rx="10" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="860" y="219" fill="#f0a500">Delivers</text>
+          <text class="node-sublabel" x="860" y="235">Work</text>
+        </g>
+
+        <!-- Supplier → Delivers -->
+        <path class="flow-path" data-section="apar" d="M 860,145 L 860,195" stroke="#f0a500" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 860,145 L 860,195" stroke="#f0a500"/>
+        <polygon points="856,193 860,183 864,193" fill="#f0a500" opacity="0.6"/>
+
+        <!-- Delivers → LLM Judge -->
+        <path class="flow-path" data-section="apar" d="M 800,222 L 570,222" stroke="#f0a500" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 800,222 L 570,222" stroke="#f0a500"/>
+        <polygon points="572,218 582,222 572,226" fill="#f0a500" opacity="0.6"/>
+        <text font-family="'Fira Code', monospace" font-size="8" fill="#f0a500" opacity="0.6" x="670" y="214">proof submitted</text>
+
+        <!-- LLM Judge -->
+        <g class="flow-node" data-tooltip="LLM Judge Verifies" data-desc="An LLM evaluates the delivered work against the PO acceptance criteria. Deterministic scoring with human escalation for disputes.">
+          <rect x="430" y="260" width="100" height="55" rx="10" fill="#0d0d1a" stroke="#00e5ff" stroke-width="1.5"/>
+          <text class="node-label" x="480" y="283" fill="#00e5ff">LLM Judge</text>
+          <text class="node-sublabel" x="480" y="299">Verifies</text>
+        </g>
+
+        <!-- Delivers → Judge -->
+        <path class="flow-path" data-section="apar" d="M 480,215 L 480,260" stroke="#00e5ff" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 480,215 L 480,260" stroke="#00e5ff"/>
+        <polygon points="476,258 480,248 484,258" fill="#00e5ff" opacity="0.6"/>
+
+        <!-- Judge → Escrow Released -->
+        <path class="flow-path" data-section="apar" d="M 480,315 L 480,345 L 680,345" stroke="#28c840" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 480,315 L 480,345 L 680,345" stroke="#28c840"/>
+        <polygon points="678,341 668,345 678,349" fill="#28c840" opacity="0.6"/>
+        <text font-family="'Fira Code', monospace" font-size="8" fill="#28c840" opacity="0.8" x="560" y="338">approved</text>
+
+        <!-- Escrow Released -->
+        <g class="flow-node" data-tooltip="Escrow Released" data-desc="Upon verified delivery, escrowed funds are instantly released to the supplier. No net-30, no disputes, no chasing.">
+          <rect x="680" y="325" width="110" height="45" rx="10" fill="#0d0d1a" stroke="#28c840" stroke-width="1.5"/>
+          <text class="node-label" x="735" y="346" fill="#28c840">Escrow</text>
+          <text class="node-sublabel" x="735" y="360">Released</text>
+        </g>
+
+        <!-- Reputation Updated -->
+        <path class="flow-path" data-section="apar" d="M 790,347 L 860,347 L 860,315" stroke="#f0a500" stroke-opacity="0.3"/>
+        <path class="flow-dash" data-section="apar" d="M 790,347 L 860,347 L 860,315" stroke="#f0a500"/>
+
+        <g class="flow-node" data-tooltip="Reputation Updated" data-desc="Supplier's on-chain reputation score increments. Higher reputation unlocks faster payments, lower escrow, and premium pricing.">
+          <rect x="810" y="280" width="100" height="35" rx="8" fill="#0d0d1a" stroke="#f0a500" stroke-width="1.5"/>
+          <text class="node-label" x="860" y="295" fill="#f0a500" font-size="9">Rep</text>
+          <text class="node-sublabel" x="860" y="308" fill="#f0a500" font-size="8" id="rep-score">+1</text>
+        </g>
+
+        <!-- Step numbers -->
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="100" y="83">01</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="100" y="190">02</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="480" y="120">03</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="860" y="190">04</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="480" y="255">05</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="735" y="320">06</text>
+        <text font-family="'Fira Code', monospace" font-size="9" fill="#55556a" text-anchor="middle" x="860" y="275">07</text>
+      </svg>
+      <div class="diagram-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background: #f0a500;"></div>Transaction flow</div>
+        <div class="legend-item"><div class="legend-swatch" style="background: #00e5ff;"></div>Verification</div>
+        <div class="legend-item"><div class="legend-swatch" style="background: #28c840;"></div>Settlement</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <div class="footer-pitch">"The financial infrastructure agents need to be trusted economic participants — identity, treasury, escrow, and reputation, all via API."</div>
+      <div class="footer-built">Built on MPP — Machine Payments Protocol (Stripe + Tempo) + x402</div>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="#">GitHub</a>
+      <a href="#">Docs</a>
+      <a href="#">Twitter</a>
+    </div>
+  </div>
+</footer>
+
+<!-- TOOLTIP ELEMENT -->
+<div class="node-tooltip" id="tooltip">
+  <div class="tt-title"></div>
+  <div class="tt-desc"></div>
+</div>
+
+<script>
+// ========= PASSWORD GATE =========
+(function() {
+  const gate = document.getElementById('password-gate');
+  const input = document.getElementById('gate-input');
+  const pass = 'letmein';
+  document.body.style.overflow = 'hidden';
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      if (input.value === pass) {
+        gate.classList.add('unlocked');
+        document.body.style.overflow = '';
+        setTimeout(() => gate.remove(), 600);
+      } else {
+        input.classList.add('error');
+        input.value = '';
+        setTimeout(() => input.classList.remove('error'), 400);
+      }
+    }
+  });
+})();
+
+// ========= SCROLL REVEAL =========
+(function() {
+  const els = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(el => obs.observe(el));
+})();
+
+// ========= FLOW PATH ACTIVATION ON SCROLL =========
+(function() {
+  const sections = ['identity', 'expense', 'apar'];
+  sections.forEach(section => {
+    const diagram = document.getElementById(section + '-diagram') || document.getElementById(section);
+    if (!diagram) return;
+    const paths = diagram.querySelectorAll('.flow-path, .flow-dash');
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          paths.forEach((path, i) => {
+            setTimeout(() => path.classList.add('active'), i * 120);
+          });
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    obs.observe(diagram);
+  });
+})();
+
+// ========= TOOLTIP =========
+(function() {
+  const tooltip = document.getElementById('tooltip');
+  const ttTitle = tooltip.querySelector('.tt-title');
+  const ttDesc = tooltip.querySelector('.tt-desc');
+
+  document.querySelectorAll('.flow-node').forEach(node => {
+    const title = node.dataset.tooltip;
+    const desc = node.dataset.desc;
+    if (!title) return;
+
+    node.addEventListener('mouseenter', (e) => {
+      ttTitle.textContent = title;
+      ttDesc.textContent = desc || '';
+      tooltip.classList.add('show');
+    });
+
+    node.addEventListener('mousemove', (e) => {
+      const x = e.clientX + 16;
+      const y = e.clientY - 10;
+      const rect = tooltip.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width - 20;
+      const maxY = window.innerHeight - rect.height - 20;
+      tooltip.style.left = Math.min(x, maxX) + 'px';
+      tooltip.style.top = Math.min(y, maxY) + 'px';
+    });
+
+    node.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('show');
+    });
+  });
+})();
+
+// ========= SPENDING GAUGE ANIMATION =========
+(function() {
+  const gauge = document.getElementById('spend-gauge');
+  const pct = document.getElementById('gauge-pct');
+  if (!gauge) return;
+
+  const section = document.getElementById('expense-diagram') || document.getElementById('expense');
+  if (!section) return;
+
+  const totalDash = 122;
+  const targetPct = 68;
+  const targetOffset = totalDash - (totalDash * targetPct / 100);
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        gauge.style.strokeDashoffset = targetOffset;
+        // Animate percentage text
+        let current = 0;
+        const step = targetPct / 40;
+        const interval = setInterval(() => {
+          current += step;
+          if (current >= targetPct) {
+            pct.textContent = targetPct + '%';
+            clearInterval(interval);
+          } else {
+            pct.textContent = Math.floor(current) + '%';
+          }
+        }, 30);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  obs.observe(section);
+})();
+
+// ========= REPUTATION SCORE ANIMATION =========
+(function() {
+  const repEl = document.getElementById('rep-score');
+  if (!repEl) return;
+
+  const section = document.getElementById('apar-diagram') || document.getElementById('apar');
+  if (!section) return;
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        let score = 0;
+        const interval = setInterval(() => {
+          score++;
+          repEl.textContent = '+' + score;
+          if (score >= 47) clearInterval(interval);
+        }, 60);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  obs.observe(section);
+})();
+</script>
+</body>
+</html>
