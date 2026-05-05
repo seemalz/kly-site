@@ -8,6 +8,74 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ========= PASSWORD GATE ========= */
+#password-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #04040a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+}
+
+#password-gate.unlocked {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+#password-gate .gate-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #e8e8f0;
+}
+
+#password-gate .gate-logo span {
+  color: #00e5ff;
+}
+
+#password-gate input {
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  padding: 14px 24px;
+  width: 280px;
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+  color: #e8e8f0;
+  outline: none;
+  text-align: center;
+  letter-spacing: 2px;
+  transition: border-color 0.3s;
+}
+
+#password-gate input:focus {
+  border-color: #00e5ff55;
+}
+
+#password-gate input.error {
+  border-color: #ff5f57;
+  animation: shake 0.4s ease;
+}
+
+#password-gate .gate-hint {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #55556a;
+  letter-spacing: 1px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-4px); }
+}
+
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -1055,6 +1123,13 @@ footer {
 </head>
 <body>
 
+<!-- PASSWORD GATE -->
+<div id="password-gate">
+  <div class="gate-logo">kly<span>.</span></div>
+  <input type="password" id="gate-input" placeholder="enter password" autofocus>
+  <div class="gate-hint">press enter to continue</div>
+</div>
+
 <div class="dot-grid"></div>
 
 <!-- NAV -->
@@ -1520,6 +1595,27 @@ footer {
     });
   }, { threshold: 0.5 });
   counters.forEach(c => obs.observe(c));
+})();
+
+// ========= PASSWORD GATE =========
+(function() {
+  const gate = document.getElementById('password-gate');
+  const input = document.getElementById('gate-input');
+  const pass = 'letmein';
+  document.body.style.overflow = 'hidden';
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      if (input.value === pass) {
+        gate.classList.add('unlocked');
+        document.body.style.overflow = '';
+        setTimeout(() => gate.remove(), 600);
+      } else {
+        input.classList.add('error');
+        input.value = '';
+        setTimeout(() => input.classList.remove('error'), 400);
+      }
+    }
+  });
 })();
 
 // ========= CLI TERMINAL LINE REVEAL =========
